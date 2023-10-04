@@ -299,6 +299,33 @@ class Person():
         self.graph["left_lower_leg"]["transform"] = tr.translate(0, -1.125, 0) @ tr.rotationX(lower_limb_rotation + 0.25) @ tr.translate(0, 1.125, 0)
         self.graph["right_lower_leg"]["transform"] = tr.translate(0, -1.125, 0) @ tr.rotationX(lower_limb_rotation + 0.25) @ tr.translate(0, 1.125, 0)
 
+class ShowOff():
+    def __init__(self, mesh, mesh2, camera):
+        self.mesh = SceneGraph(camera)
+        self.mesh.add_node("mesh", 
+                            mesh=mesh,
+                            color=shapes.RED)
+        self.mesh.add_node("hangar", attach_to="mesh", mesh=mesh2, scale=[2, 2, 2], color=shapes.BLUE, position=[0, 0.85, 0])
+        self.camera = camera
+        self.transform = np.identity(4)
+
+    def draw(self):
+        self.mesh.draw()
+
+    def update(self, dt):
+        pass
+
+    def set_mesh_at_origin(self):
+        self.transform = np.identity(4)
+        self.mesh.pipeline.use()
+        if self.camera is not None:
+            if "u_view" in self.mesh.pipeline.uniforms:
+                self.mesh.pipeline["u_view"] = self.camera.get_view()
+
+            if "u_projection" in self.mesh.pipeline.uniforms:
+                self.mesh.pipeline["u_projection"] = self.camera.get_projection()
+
+        self.mesh.pipeline["u_model"] = np.reshape(self.transform, (16, 1), order="F")
 
 if __name__ == "__main__":
     # Instancia del controller
@@ -341,8 +368,10 @@ if __name__ == "__main__":
     cube = Model(shapes.Cube["position"],index_data=shapes.Cube["indices"])
     cube.init_gpu_data(mesh_pipeline)
 
-    sphere = Mesh("assets/sphere.off")
+    sphere = Mesh("TMCAR.off")
     sphere.init_gpu_data(mesh_pipeline)
+    hangar = Mesh("HANGAR.obj")
+    hangar.init_gpu_data(mesh_pipeline)
 
     graph = SceneGraph(camera)
     graph.add_node("shapes")
@@ -363,6 +392,7 @@ if __name__ == "__main__":
                    color=shapes.BLUE,
                    transform=tr.scale(2, 1, 2))
     
+    showoff = ShowOff(sphere, hangar, camera)
     solar_system = SolarSystem(sphere, camera)
     person = Person(cube, camera)
 
@@ -426,8 +456,9 @@ if __name__ == "__main__":
 
         # Aquí se dibujan los grafos, descomentar según se necesite
         #graph.draw()
-        #solar_system.draw()
-        person.draw()
+        # solar_system.draw()
+        showoff.draw()
+        #person.draw()
 
     pyglet.clock.schedule_interval(update, 1/60)
     pyglet.app.run()
